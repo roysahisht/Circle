@@ -1,0 +1,15 @@
+/* Shared look for privacy.html and terms.html */
+:root { --cream: #FFF8E7; --ink: #141414; --muted: #5f5a52; --orange: #FF5A1F; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--cream); color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+main { max-width: 680px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 30px; line-height: 1.15; margin: 18px 0 4px; }
+h2 { font-size: 19px; margin: 28px 0 6px; }
+ul { padding-left: 20px; }
+li { margin: 6px 0; }
+a { color: var(--orange); }
+.back { font-weight: 700; text-decoration: none; }
+.updated { color: var(--muted); margin-top: 0; }

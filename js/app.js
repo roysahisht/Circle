@@ -291,6 +291,7 @@
         ${Store.cloud
           ? (Store.signedIn() ? '' : '<p>👤 Not signed in yet.</p>')
           : '<button class="link" data-action="reset-demo">Reset demo data</button>'}
+        <p><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></p>
       </div>
       ${accountBox()}`;
   }
@@ -767,6 +768,7 @@
         ${siteKey ? '<div id="captcha" class="captcha"></div>' : ''}
         <button class="btn ${google ? '' : 'btn--primary'} btn--block" id="welcome-go">Let's eat →</button>
         <p class="meta small">${google ? 'Name-only accounts live on this phone — you can save yours with Google later.' : 'No email or password needed. Your account lives on this phone.'}</p>
+        <p class="meta small">By joining you agree to the <a href="terms.html" target="_blank">Terms</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>.</p>
       </div>`, sheet => {
       const input = $('#welcome-name', sheet);
       const go = $('#welcome-go', sheet);

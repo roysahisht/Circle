@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "site")
-PUBLISH = ["index.html", "css", "js", "data"]
+PUBLISH = ["index.html", "privacy.html", "terms.html", "legal.css", "css", "js", "data"]
 
 
 def main():
