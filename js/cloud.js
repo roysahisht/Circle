@@ -131,6 +131,19 @@ window.Cloud = (function () {
     else check(await sb.from('follows').delete().eq('follower_id', userId).eq('followee_id', otherId));
   }
 
+  // ---------- usage tracking ----------
+  // One private row per person per day (see supabase/fix-02-usage-tracking.sql). Fire and forget:
+  // a failure here must never get in the way of the app, and "already recorded today" is fine.
+  function recordVisit() {
+    const day = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    try { if (sessionStorage.getItem('circle.visit') === day) return; } catch (e) { /* private mode */ }
+    sb.from('activity_days').upsert({}, { onConflict: 'user_id,day', ignoreDuplicates: true })
+      .then(({ error }) => {
+        if (error) return console.warn('visit not recorded', error.message);
+        try { sessionStorage.setItem('circle.visit', day); } catch (e) { /* private mode */ }
+      });
+  }
+
   // ---------- invites ----------
   async function inviteToken(userId) {
     const existing = check(await sb.from('invites').select('token').eq('inviter_id', userId).maybeSingle());
@@ -145,6 +158,6 @@ window.Cloud = (function () {
   return {
     enabled, currentUser, signUpAnonymously, authSettings, signInWithGoogle, linkGoogle, signOut,
     updateName, loadAll, ensurePlace, uploadPhoto, insertReview, setWant, setFollow, inviteToken,
-    acceptInvite, colorFor,
+    acceptInvite, colorFor, recordVisit,
   };
 })();

@@ -1002,6 +1002,17 @@
   readInviteFromUrl();
   readAuthErrorFromUrl();
 
+  // Visitor counts without cookies (Cloudflare Web Analytics), only once a token is set in config.js.
+  // Skipped on localhost so your own testing doesn't pollute the numbers.
+  const cfToken = (window.CIRCLE_CONFIG && CIRCLE_CONFIG.CF_ANALYTICS_TOKEN) || '';
+  if (cfToken && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+    const s = document.createElement('script');
+    s.defer = true;
+    s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+    s.setAttribute('data-cf-beacon', JSON.stringify({ token: cfToken }));
+    document.head.appendChild(s);
+  }
+
   // The full Bangalore list (made by scripts/fetch_places.py) loads in parallel.
   fetch('data/bangalore-places.json')
     .then(res => (res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status))))

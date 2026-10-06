@@ -52,6 +52,7 @@ window.Store = (function () {
       if (meId && !db.users.some(u => u.id === meId)) {
         db.users.push({ id: meId, name: (user.user_metadata && user.user_metadata.full_name) || 'You', color: Cloud.colorFor(meId), isMe: true });
       }
+      if (meId) Cloud.recordVisit();
       if (lastBaseJson) loadBase(lastBaseJson); else reindex();
       return;
     }

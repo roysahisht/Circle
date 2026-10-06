@@ -8,6 +8,9 @@
 //   Put it here BEFORE switching on CAPTCHA in Supabase, or name-only sign-ups will fail.
 //   The Turnstile *secret* key goes only into Supabase, never here.
 //
+// CF_ANALYTICS_TOKEN: Cloudflare Web Analytics token — free, no cookies. Counts everyone who opens
+//   the site, including people who never sign up. Leave empty to switch it off.
+//
 // "Sign in with Google" needs nothing here — it appears automatically once Google is switched
 //   on in Supabase (Authentication -> Sign In / Providers).
 //
@@ -22,6 +25,7 @@ window.CIRCLE_CONFIG = {
   SUPABASE_URL: 'https://xnxvvgpophchyiaexkad.supabase.co',
   SUPABASE_KEY: 'sb_publishable_2sgzLYWzH0R10CKP6dvc5Q_zZM40blt',
   TURNSTILE_SITE_KEY: '',
+  CF_ANALYTICS_TOKEN: '',
   GOOGLE_MAPS_API_KEY: '',
   GOOGLE_PHOTOS_IN_LISTS: false,
   CITY: { name: 'Bangalore', lat: 12.9716, lng: 77.5946 },
