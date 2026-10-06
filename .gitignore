@@ -1,0 +1,6 @@
+# built by scripts/build_site.py — Netlify rebuilds it
+site/
+site.zip
+__pycache__/
+# local editor / assistant settings
+.claude/

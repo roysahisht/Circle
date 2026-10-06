@@ -1,0 +1,10 @@
+# Used once the project is connected to Netlify through GitHub (not needed for drag-and-drop).
+[build]
+  command = "python3 scripts/build_site.py"
+  publish = "site"
+
+# The restaurant list is big and changes rarely; let phones cache it for a day.
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
