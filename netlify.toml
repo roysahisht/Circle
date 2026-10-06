@@ -3,6 +3,13 @@
   command = "python3 scripts/build_site.py"
   publish = "site"
 
+# The admin dashboard is private; keep it out of search results too.
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+
 # The restaurant list is big and changes rarely; let phones cache it for a day.
 [[headers]]
   for = "/data/*"

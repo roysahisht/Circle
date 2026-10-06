@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light">
+  <title>Circle admin</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #FFF8E7; --paper: #FFFDF6; --ink: #141414; --muted: #5f5a52; --line: rgba(20,20,20,.14);
+      --orange: #E8470C; --green: #15803D; --lemon: #FFE66D;
+      --border: 2.5px solid var(--ink); --shadow: 4px 4px 0 var(--ink);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font: 15px/1.45 'DM Sans', system-ui, sans-serif; }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    a { color: inherit; }
+    main { max-width: 1040px; margin: 0 auto; padding: 16px 16px 64px; }
+    header.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: var(--border); margin-bottom: 18px; }
+    .logo { font-family: 'Archivo Black', system-ui, sans-serif; font-size: 26px; letter-spacing: -1px; }
+    .logo span { color: var(--orange); }
+    .tag { font-weight: 800; font-size: 12px; background: var(--lemon); border: var(--border); border-radius: 999px; padding: 2px 10px; }
+    .spacer { flex: 1; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .btn { border: var(--border); border-radius: 10px; background: #fff; padding: 7px 12px; font-weight: 800; font-size: 13px; box-shadow: 2px 2px 0 var(--ink); }
+    .btn:active { transform: translate(2px, 2px); box-shadow: none; }
+    .btn--primary { background: var(--orange); color: #fff; padding: 12px 18px; font-size: 16px; }
+    .btn:disabled { opacity: .55; cursor: wait; }
+
+    h2 { font-family: 'Archivo Black', system-ui, sans-serif; font-weight: 400; font-size: 15px; text-transform: uppercase; margin: 30px 0 10px; display: flex; align-items: center; gap: 10px; }
+    h2 .link { font-family: 'DM Sans', sans-serif; text-transform: none; font-size: 13px; font-weight: 700; margin-left: auto; background: none; border: 0; text-decoration: underline; padding: 0; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; }
+    .card { background: var(--paper); border: var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 14px 16px; }
+    .card small { display: block; font-weight: 800; font-size: 12px; text-transform: uppercase; color: var(--muted); letter-spacing: .3px; }
+    .card b { display: block; font-family: 'Archivo Black', system-ui, sans-serif; font-weight: 400; font-size: 40px; line-height: 1.1; margin: 4px 0 2px; }
+    .card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .card--hot { background: #FFF1E8; }
+    .card--ok b { color: var(--green); }
+
+    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+    .chart { background: var(--paper); border: var(--border); border-radius: 14px; padding: 12px 14px 8px; position: relative; }
+    .chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .chart-head strong { font-size: 14px; }
+    .chart svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
+    .chart svg text { font: 11px 'DM Sans', sans-serif; fill: var(--muted); }
+    .bar { fill: var(--orange); }
+    .bar--today { fill: var(--ink); }
+    .grid { stroke: var(--line); stroke-width: 1; }
+    .base { stroke: var(--ink); stroke-width: 1.5; }
+    .hit { fill: transparent; }
+    .hit:hover + .hover-bg, .hit.on + .hover-bg { opacity: 1; }
+    .hover-bg { fill: rgba(232,71,12,.12); opacity: 0; pointer-events: none; }
+    .tip { position: absolute; z-index: 5; pointer-events: none; background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; padding: 5px 9px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, -100%); display: none; }
+
+    table { width: 100%; border-collapse: collapse; background: var(--paper); border: var(--border); border-radius: 14px; overflow: hidden; font-size: 14px; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 12px; text-transform: uppercase; color: var(--muted); background: #fff; position: sticky; top: 0; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    .scroll { overflow-x: auto; border-radius: 14px; }
+    .pill { font-size: 11px; font-weight: 800; border: 2px solid var(--ink); border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+    .pill--g { background: #C8F7DC; } .pill--n { background: #FFE0B8; }
+    .note { color: var(--muted); font-size: 13px; max-width: 360px; }
+    .hidden { display: none !important; }
+
+    .gate { max-width: 520px; margin: 60px auto; text-align: center; }
+    .gate h1 { font-family: 'Archivo Black', system-ui, sans-serif; font-weight: 400; font-size: 26px; margin: 8px 0; }
+    .gate pre { text-align: left; background: #fff; border: var(--border); border-radius: 12px; padding: 12px; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
+    .steps { text-align: left; padding-left: 20px; }
+    .steps li { margin: 6px 0; }
+    .err { color: #b91c1c; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main id="root"><div class="gate"><p class="meta">Loading…</p></div></main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const cfg = window.CIRCLE_CONFIG || {};
+    const root = document.getElementById('root');
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const num = n => Number(n || 0).toLocaleString('en-IN');
+    const pct = (a, b) => (b ? Math.round((100 * a) / b) + '%' : '–');
+    const fmtDay = d => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const fmtDayLong = d => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    const fmtAgo = iso => {
+      const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+      if (m < 60) return Math.max(m, 1) + 'm ago';
+      if (m < 1440) return Math.round(m / 60) + 'h ago';
+      return Math.round(m / 1440) + 'd ago';
+    };
+
+    let sb = null;
+    let timer = null;
+    let lastData = null;
+    let showTable = false;
+
+    // ---------- screens ----------
+    function gate(html) { root.innerHTML = `<div class="gate">${html}</div>`; }
+
+    function signInScreen(note) {
+      gate(`<div class="logo">circle<span>.</span> admin</div>
+        <h1>Private page</h1>
+        <p class="meta">${note || 'Only the Circle owner can open this. Sign in with the Google account you set up as admin.'}</p>
+        <p><button class="btn btn--primary" id="google">Continue with Google</button></p>`);
+      document.getElementById('google').onclick = async () => {
+        const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+        if (error) gate(`<p class="err">${esc(error.message)}</p>`);
+      };
+    }
+
+    function notAdminScreen(user) {
+      const email = user && user.email;
+      if (!email) {
+        signInScreen('You are signed in with a name-only account. The dashboard needs a Google account — sign in with Google (use the same one you want as admin).');
+        return;
+      }
+      const sql = `insert into public.admin_emails (email) values ('${email.replace(/'/g, "''")}') on conflict do nothing;`;
+      gate(`<div class="logo">circle<span>.</span> admin</div>
+        <h1>One last step</h1>
+        <p class="meta">You're signed in as <b>${esc(email)}</b>, but that email isn't an admin yet.</p>
+        <ol class="steps">
+          <li>Click <b>Copy SQL</b> below.</li>
+          <li>Open the <a href="https://supabase.com/dashboard/project/${esc(projectRef())}/sql/new" target="_blank" rel="noopener">Supabase SQL Editor</a>, paste it, and click <b>Run</b>.</li>
+          <li>Come back here and click <b>Reload</b>.</li>
+        </ol>
+        <pre id="sql">${esc(sql)}</pre>
+        <p><button class="btn" id="copy">Copy SQL</button> <button class="btn" id="reload">Reload</button> <button class="btn" id="out">Sign out</button></p>`);
+      document.getElementById('copy').onclick = async e => {
+        try { await navigator.clipboard.writeText(sql); e.target.textContent = 'Copied ✓'; } catch (err) { e.target.textContent = 'Select the text and press Ctrl+C'; }
+      };
+      document.getElementById('reload').onclick = () => location.reload();
+      document.getElementById('out').onclick = signOut;
+    }
+
+    function projectRef() { try { return new URL(cfg.SUPABASE_URL).hostname.split('.')[0]; } catch (e) { return ''; } }
+    async function signOut() { await sb.auth.signOut(); location.reload(); }
+
+    // ---------- charts ----------
+    // One small bar chart per metric (never two scales on one chart). Hover or tap a bar for its value.
+    function chartSvg(days, key, label) {
+      const W = 340, H = 120, L = 26, R = 6, T = 14, B = 20;
+      const iw = W - L - R, ih = H - T - B, n = days.length;
+      const vals = days.map(d => Number(d[key] || 0));
+      const max = Math.max(3, ...vals);
+      const slot = iw / n, bw = Math.max(3, Math.min(14, slot * 0.62));
+      const y = v => T + ih - (v / max) * ih;
+      let bars = '', hits = '';
+      days.forEach((d, i) => {
+        const v = vals[i], x = L + i * slot + (slot - bw) / 2, top = y(v), h = T + ih - top;
+        const today = i === n - 1;
+        if (v > 0) {
+          const r = Math.min(4, bw / 2, h);
+          bars += `<path class="bar ${today ? 'bar--today' : ''}" d="M${x},${T + ih} L${x},${top + r} Q${x},${top} ${x + r},${top} L${x + bw - r},${top} Q${x + bw},${top} ${x + bw},${top + r} L${x + bw},${T + ih} Z"/>`;
+        }
+        hits += `<rect class="hit" x="${L + i * slot}" y="${T}" width="${slot}" height="${ih}" data-tip="${esc(fmtDayLong(d.day))}: ${v} ${esc(label)}" data-cx="${L + i * slot + slot / 2}" data-cy="${Math.min(top, T + ih - 2)}"/>
+          <rect class="hover-bg" x="${L + i * slot}" y="${T}" width="${slot}" height="${ih}"/>`;
+      });
+      const total = vals.reduce((a, b) => a + b, 0);
+      return { total, svg: `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)} per day for the last ${n} days, ${total} in total">
+        <line class="grid" x1="${L}" x2="${W - R}" y1="${T}" y2="${T}"/>
+        <text x="${L - 4}" y="${T + 4}" text-anchor="end">${max}</text>
+        <text x="${L - 4}" y="${T + ih + 4}" text-anchor="end">0</text>
+        ${bars}
+        <line class="base" x1="${L}" x2="${W - R}" y1="${T + ih}" y2="${T + ih}"/>
+        <text x="${L}" y="${H - 4}">${esc(fmtDay(days[0].day))}</text>
+        <text x="${L + iw / 2}" y="${H - 4}" text-anchor="middle">${esc(fmtDay(days[Math.floor(n / 2)].day))}</text>
+        <text x="${W - R}" y="${H - 4}" text-anchor="end">Today</text>
+        ${hits}</svg>` };
+    }
+
+    function wireTips() {
+      document.querySelectorAll('.chart').forEach(box => {
+        const tip = box.querySelector('.tip'), svg = box.querySelector('svg');
+        if (!svg) return;
+        const show = r => {
+          const sr = svg.getBoundingClientRect(), br = box.getBoundingClientRect(), k = sr.width / svg.viewBox.baseVal.width;
+          tip.textContent = r.dataset.tip;
+          tip.style.left = (sr.left - br.left + r.dataset.cx * k) + 'px';
+          tip.style.top = (sr.top - br.top + r.dataset.cy * k - 4) + 'px';
+          tip.style.display = 'block';
+        };
+        svg.querySelectorAll('.hit').forEach(r => {
+          r.addEventListener('pointerenter', () => show(r));
+          r.addEventListener('pointerdown', () => show(r));
+        });
+        svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+      });
+    }
+
+    // ---------- the dashboard ----------
+    function render(data) {
+      lastData = data;
+      const t = data.totals, a = data.active, ret = data.retention, daily = data.daily;
+      const last7 = key => daily.slice(-7).reduce((s, d) => s + Number(d[key] || 0), 0);
+      const today = daily[daily.length - 1] || {};
+      const retText = ret.eligible ? pct(ret.returned, ret.eligible) : '–';
+
+      const charts = [
+        chartSvg(daily, 'joined', 'joined'),
+        chartSvg(daily, 'opened', 'opened the app'),
+        chartSvg(daily, 'ratings', 'ratings'),
+      ];
+      const titles = ['People joined per day', 'People who opened the app per day', 'Ratings posted per day'];
+
+      const tableOf = rows => `<div class="scroll">${rows}</div>`;
+
+      root.innerHTML = `
+        <header class="top">
+          <div class="logo">circle<span>.</span></div><span class="tag">admin</span>
+          <span class="spacer"></span>
+          <span class="meta" id="updated">Updated ${new Date(data.generated_at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</span>
+          <button class="btn" id="refresh">↻ Refresh</button>
+          <button class="btn" id="out">Sign out</button>
+        </header>
+
+        <div class="cards">
+          <div class="card"><small>People joined</small><b>${num(t.people)}</b>
+            <p>${num(t.google)} Google · ${num(t.name_only)} name only</p></div>
+          <div class="card card--hot"><small>Opened the app today</small><b>${num(a.today)}</b>
+            <p>${num(a.d7)} this week · ${num(a.d30)} this month</p></div>
+          <div class="card"><small>Ratings posted</small><b>${num(t.ratings)}</b>
+            <p>${num(today.ratings)} today · ${num(last7('ratings'))} this week</p></div>
+          <div class="card ${t.people && t.raters / t.people >= 0.5 ? 'card--ok' : ''}"><small>Joined → rated something</small><b>${pct(t.raters, t.people)}</b>
+            <p>${num(t.raters)} of ${num(t.people)} people have posted a rating</p></div>
+          <div class="card"><small>Came back later</small><b>${retText}</b>
+            <p>${ret.eligible ? `${num(ret.returned)} of ${num(ret.eligible)} who joined 7+ days ago` : 'Too early — needs people who joined 7+ days ago'}</p></div>
+          <div class="card"><small>Friend connections</small><b>${num(t.friend_links)}</b>
+            <p>${num(t.with_photo)} ratings with photos · ${num(t.user_places)} places added by users · ${num(t.want_items)} saved to Want to Try</p></div>
+        </div>
+
+        <h2>Last 30 days <button class="link" id="toggle">${showTable ? 'Show charts' : 'Show as table'}</button></h2>
+        ${showTable ? tableOf(`<table><thead><tr><th>Day</th><th class="num">Joined</th><th class="num">Opened app</th><th class="num">Ratings</th></tr></thead><tbody>
+          ${daily.slice().reverse().map(d => `<tr><td>${esc(fmtDayLong(d.day))}</td><td class="num">${d.joined}</td><td class="num">${d.opened}</td><td class="num">${d.ratings}</td></tr>`).join('')}</tbody></table>`)
+        : `<div class="charts">${charts.map((c, i) => `<div class="chart"><div class="chart-head"><strong>${titles[i]}</strong><span class="meta">${num(c.total)} total</span></div>${c.svg}<div class="tip"></div></div>`).join('')}</div>`}
+
+        <h2>Most rated places</h2>
+        ${data.top_places.length ? tableOf(`<table><thead><tr><th>Place</th><th>Area</th><th class="num">Ratings</th><th class="num">Avg</th></tr></thead><tbody>
+          ${data.top_places.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.area)}</td><td class="num">${p.ratings}</td><td class="num">${p.avg_score}</td></tr>`).join('')}</tbody></table>`) : '<p class="meta">No ratings yet.</p>'}
+
+        <h2>Latest ratings</h2>
+        ${data.recent.length ? tableOf(`<table><thead><tr><th>Who</th><th>Place</th><th class="num">Score</th><th>Said</th><th>When</th></tr></thead><tbody>
+          ${data.recent.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.place)}</td><td class="num">${r.score}</td><td class="note">${esc(r.note || '')}</td><td>${fmtAgo(r.created_at)}</td></tr>`).join('')}</tbody></table>`) : '<p class="meta">No ratings yet.</p>'}
+
+        <h2>Everyone who joined <span class="meta" style="text-transform:none">(emails are for your eyes only)</span></h2>
+        ${tableOf(`<table><thead><tr><th>Name</th><th>Account</th><th>Joined</th><th class="num">Ratings</th><th class="num">Friends</th><th>Last opened</th></tr></thead><tbody>
+          ${data.people.map(p => `<tr><td>${esc(p.name)}${p.email ? `<br><span class="meta">${esc(p.email)}</span>` : ''}</td>
+            <td><span class="pill ${p.google ? 'pill--g' : 'pill--n'}">${p.google ? 'Google' : 'Name only'}</span></td>
+            <td>${esc(fmtDay(p.joined_at))}</td><td class="num">${p.ratings}</td><td class="num">${p.friends}</td>
+            <td>${p.last_opened ? esc(fmtDay(p.last_opened)) : '—'}</td></tr>`).join('')}</tbody></table>`)}
+
+        <h2>People who visit but never sign up</h2>
+        <p class="meta">Supabase only knows about people who joined. For everyone who opens your link, use <a href="https://dash.cloudflare.com/?to=/:account/web-analytics" target="_blank" rel="noopener">Cloudflare Web Analytics</a>.
+          Raw data: <a href="https://supabase.com/dashboard/project/${esc(projectRef())}/auth/users" target="_blank" rel="noopener">Supabase → Users</a>.</p>`;
+
+      document.getElementById('refresh').onclick = () => load(true);
+      document.getElementById('out').onclick = signOut;
+      document.getElementById('toggle').onclick = () => { showTable = !showTable; render(lastData); };
+      wireTips();
+    }
+
+    // ---------- loading ----------
+    async function load(manual) {
+      const btn = document.getElementById('refresh');
+      if (btn) { btn.disabled = true; btn.textContent = 'Refreshing…'; }
+      const { data, error } = await sb.rpc('admin_stats');
+      if (error) {
+        if (!lastData || !manual) {
+          const { data: s } = await sb.auth.getSession();
+          if (error.code === '42501' || /not allowed/i.test(error.message)) return notAdminScreen(s.session && s.session.user);
+          if (error.code === 'PGRST202' || /could not find the function/i.test(error.message)) {
+            return gate(`<h1>Setup needed</h1><p class="meta">The dashboard database function doesn't exist yet. Run <code>supabase/fix-03-admin-dashboard.sql</code> in the Supabase SQL Editor, then reload.</p>`);
+          }
+          return gate(`<h1>Something went wrong</h1><p class="err">${esc(error.message)}</p><p><button class="btn" onclick="location.reload()">Try again</button></p>`);
+        }
+        if (btn) { btn.disabled = false; btn.textContent = '↻ Refresh'; }
+        const u = document.getElementById('updated'); if (u) u.textContent = 'Could not refresh — check your internet';
+        return;
+      }
+      render(data);
+    }
+
+    async function start() {
+      if (!cfg.SUPABASE_URL || !cfg.SUPABASE_KEY || !window.supabase) return gate('<h1>Not configured</h1><p class="meta">Supabase settings are missing in js/config.js.</p>');
+      sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY, { auth: { flowType: 'pkce' } });
+      const { data } = await sb.auth.getSession(); // also finishes a Google sign-in that just returned
+      if (!data.session) return signInScreen();
+      await load(false);
+      clearInterval(timer);
+      timer = setInterval(() => { if (!document.hidden && lastData) load(true); }, 60000);
+    }
+
+    window.AdminDashboard = { render };   // lets the page be previewed with sample data
+    start().catch(err => { console.error(err); gate(`<h1>Something went wrong</h1><p class="err">${esc(err.message || err)}</p>`); });
+  })();
+  </script>
+</body>
+</html>

@@ -92,6 +92,15 @@ Ratings, photos, Want to Try lists and circles are stored in Supabase, so everyo
 
 Leave `SUPABASE_URL` empty to run the offline demo instead, with made-up people saved only in your browser.
 
+## Admin dashboard (private)
+
+**https://circle-blr.netlify.app/admin.html** shows everything in one place: people joined (Google vs name only), who opened the app today / this week / this month, ratings, the share of people who rate something, how many come back, 30-day charts (hover a bar for its number, or switch to a table), most-rated places, the latest ratings, and a list of everyone who joined.
+
+- **Who can open it:** only a Google account whose email is in the `admin_emails` table. The numbers are calculated inside the database by `admin_stats()`, which refuses everyone else, so the page being public doesn't expose anything.
+- **Setup (once):** run `supabase/fix-03-admin-dashboard.sql` in the Supabase SQL Editor, open `/admin.html`, sign in with Google, and the page shows a one-click SQL snippet with your email filled in.
+- **Opened the app** comes from `activity_days`: one private row per person per day. Nobody can read it through the app, only the dashboard.
+- **People who visit but never sign up** can't be seen by Supabase. Put a free [Cloudflare Web Analytics](https://dash.cloudflare.com) token in `CF_ANALYTICS_TOKEN` in `js/config.js` to count them (no cookies).
+
 ## Files
 
 ```
