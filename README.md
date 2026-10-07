@@ -73,6 +73,16 @@ It does nothing if you already have the latest release. Add `--force` to rebuild
 
 Places people already rated are stored in the database with their own copy of the area, so rebuilding the list never changes or loses their ratings; it only affects places nobody has touched yet.
 
+### The launch hub (AECS Layout · Kundalahalli · Brookefield)
+
+This is where Circle launches, so it gets extra care and has to look complete.
+
+- **In the app** (`HUB` in `js/config.js`): a "Launch hub" card on Trending, always-visible area chips, one combined page at `#/hub` listing every place, and a map that opens on the hub. Delete the `HUB` line to turn all of it off, or change the areas to move the hub.
+- **In the data** (`scripts/areas.py`): addresses here often end in "Whitefield" or "Marathahalli" (the post-office names), so inside the hub those big names count only as a weak hint and nearby places decide. The hub's centre, radius and the names that count as "big" are the `HUB_*` and `BROAD_AREAS` settings at the top of that file. The more specific hub names win when an address mentions several, and a name only counts near the real hub (there is another "AECS Layout" near Singasandra). Small local places the open data is unsure about are kept inside the hub; elsewhere they are dropped.
+- **Check after any change:** `python scripts/fetch_places.py --force` prints how many places moved, from where to where.
+
+**Planning to use Google's data later?** Google only allows storing a place's *ID*. Names, addresses, locations and photos can't be copied into your database, and bulk-importing Google's places isn't allowed ([policy](https://developers.google.com/maps/documentation/places/web-service/policies)). What works: Google search and photos shown live, with only the ID saved when someone rates a place. That is already how `js/maps.js` is built.
+
 ### How areas are worked out (`scripts/areas.py`)
 
 1. **From the address or name.** About 6,800 places name their area ("…Gandhi Bazaar Main Rd, Basavanagudi", "Koramangala Social"). `areas.py` holds a list of about 60 Bangalore areas and the spellings people use for them (Kormangala, J P Nagar, HAL 2nd Stage…). Add any spellings that are missing there.

@@ -11,6 +11,9 @@
 // CF_ANALYTICS_TOKEN: Cloudflare Web Analytics token — free, no cookies. Counts everyone who opens
 //   the site, including people who never sign up. Leave empty to switch it off.
 //
+// HUB: the launch neighbourhoods. They get a card on the Trending tab, always-visible area chips,
+//   one combined page (#/hub) and a "hub" view on the map. Remove the HUB line to switch it all off.
+//
 // "Sign in with Google" needs nothing here — it appears automatically once Google is switched
 //   on in Supabase (Authentication -> Sign In / Providers).
 //
@@ -26,6 +29,7 @@ window.CIRCLE_CONFIG = {
   SUPABASE_KEY: 'sb_publishable_2sgzLYWzH0R10CKP6dvc5Q_zZM40blt',
   TURNSTILE_SITE_KEY: '',
   CF_ANALYTICS_TOKEN: '',
+  HUB: { name: 'Brookefield hub', areas: ['AECS Layout', 'Kundalahalli', 'Brookefield'] },
   GOOGLE_MAPS_API_KEY: '',
   GOOGLE_PHOTOS_IN_LISTS: false,
   CITY: { name: 'Bangalore', lat: 12.9716, lng: 77.5946 },

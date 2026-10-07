@@ -23,7 +23,8 @@
   ];
   const emojiFor = c => (CUISINE_EMOJI.find(([k]) => String(c || '').toLowerCase().includes(k)) || [0, '🍽️'])[1];
 
-  const state = { trendingArea: 'All', mapFilter: 'all', focusId: null, areaLimit: 60 };
+  const HUB = (window.CIRCLE_CONFIG && CIRCLE_CONFIG.HUB) || null;
+  const state = { trendingArea: 'All', mapFilter: HUB ? 'hub' : 'all', focusId: null, areaLimit: 60 };
   let mapCtl = null;
   let mapBuilding = null;
   let sheetCleanup = null;
@@ -145,8 +146,13 @@
         <input type="search" id="explore-q" placeholder="🔎 Search ${Store.placeCount().toLocaleString('en-IN')} places or an area…" autocomplete="off" enterkeyhint="search">
         <div id="explore-results"></div>
       </div>
+      ${HUB ? `<a class="hub-card" href="#/hub">
+        <small>📍 Launch hub</small>
+        <b>${esc(HUB.name)}</b>
+        <span>${Store.placesInAreas(HUB.areas).length} places · ${HUB.areas.map(esc).join(' · ')}</span>
+        <i>See them all →</i></a>` : ''}
       <div class="chips">
-        ${['All', ...Store.ratedAreas()].map(a => `<button class="chip ${a === area ? 'on' : ''}" data-action="set-area" data-area="${esc(a)}">${a === 'All' ? 'All Bangalore' : esc(a)}</button>`).join('')}
+        ${['All', ...(HUB ? HUB.areas : []), ...Store.ratedAreas().filter(a => !(HUB && HUB.areas.includes(a)))].map(a => `<button class="chip ${a === area ? 'on' : ''}" data-action="set-area" data-area="${esc(a)}">${a === 'All' ? 'All Bangalore' : esc(a)}</button>`).join('')}
       </div>
 
       ${areaFilter ? `<a class="area-link" href="#/area/${encodeURIComponent(area)}">📍 See all ${Store.placesInArea(area).length} places in ${esc(area)} →</a>` : ''}
@@ -205,16 +211,17 @@
   }
 
   // Every place in one area — rated ones first, then A–Z.
-  function renderArea(area) {
-    const all = Store.placesInArea(area)
+  function renderArea(areas, title) {
+    const multi = areas.length > 1;
+    const all = (multi ? Store.placesInAreas(areas) : Store.placesInArea(areas[0]))
       .map(p => ({ place: p, stats: Store.placeStats(p.id) }))
       .sort((a, b) => (b.stats.ranked || 0) - (a.stats.ranked || 0) || a.place.name.localeCompare(b.place.name));
     const shown = all.slice(0, state.areaLimit);
     return `
       <a class="back" href="#/trending">← Trending</a>
       <section class="hero hero--list">
-        <small>Every spot on the map</small>
-        <h1>${esc(area)}</h1>
+        <small>${multi ? esc(areas.join(' · ')) : 'Every spot on the map'}</small>
+        <h1>${esc(title)}</h1>
         <p><b>${all.length}</b> places · <b>${all.filter(x => x.stats.cityCount).length}</b> rated on Circle so far</p>
       </section>
       ${all.length ? shown.map(x => `
@@ -222,7 +229,7 @@
           <button class="unstyled" data-action="open-place" data-id="${esc(x.place.id)}">${photoBlock(x.place, null, 'thumb')}</button>
           <button class="grow unstyled" data-action="open-place" data-id="${esc(x.place.id)}">
             <b class="ellipsis">${esc(x.place.name)}</b>
-            <span class="meta">${esc(x.place.cuisine)}${x.place.veg ? ' · <span class="veg">● Pure veg</span>' : ''}</span>
+            <span class="meta">${multi ? `${esc(x.place.area)} · ` : ''}${esc(x.place.cuisine)}${x.place.veg ? ' · <span class="veg">● Pure veg</span>' : ''}</span>
             <span class="meta">${x.stats.cityCount ? `${x.stats.cityCount} rating${x.stats.cityCount > 1 ? 's' : ''}` : 'Not rated yet — be the first'}</span>
           </button>
           <span class="rank-side">${scoreChip(x.stats.ranked)}<button class="icon-btn ${Store.isWanted(x.place.id) ? 'on' : ''}" data-action="toggle-want" data-id="${esc(x.place.id)}" aria-label="Want to try">🔖</button></span>
@@ -299,7 +306,7 @@
   // ---------- routing ----------
   function render(resetScroll) {
     const [name, arg] = currentRoute();
-    const tab = name === 'list' || name === 'area' ? 'trending' : name;
+    const tab = name === 'list' || name === 'area' || name === 'hub' ? 'trending' : name;
     $$('.tabbar a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
     const isMap = name === 'map';
     $('#map-view').hidden = !isMap;
@@ -311,7 +318,8 @@
       trending: renderTrending,
       saved: renderSaved,
       list: () => renderList(decodeURIComponent(arg || '')),
-      area: () => renderArea(decodeURIComponent(arg || '')),
+      area: () => { const a = decodeURIComponent(arg || ''); return renderArea([a], a); },
+      hub: () => (HUB ? renderArea(HUB.areas, HUB.name) : renderCircle()),
     };
     const y = window.scrollY;
     $('#view').innerHTML = (views[name] || renderCircle)();
@@ -695,7 +703,7 @@
   }
 
   // ---------- map tab ----------
-  const MAP_FILTERS = [['all', 'All'], ['circle', '👯 Circle picks'], ['want', '🔖 Want to try'], ['mine', '✅ Been']];
+  const MAP_FILTERS = [...(HUB ? [['hub', '📍 ' + HUB.name]] : []), ['all', 'All'], ['circle', '👯 Circle picks'], ['want', '🔖 Want to try'], ['mine', '✅ Been']];
 
   function mapItems() {
     const f = state.mapFilter;
@@ -707,7 +715,7 @@
         const kind = s.myScore != null ? 'mine' : want ? 'want' : s.circleCount ? 'circle' : 'other';
         return { place: p, kind, s, want };
       })
-      .filter(it => f === 'all' || (f === 'want' && it.want) || (f === 'circle' && it.s.circleCount) || (f === 'mine' && it.s.myScore != null));
+      .filter(it => f === 'all' || (f === 'hub' && HUB && HUB.areas.includes(it.place.area)) || (f === 'want' && it.want) || (f === 'circle' && it.s.circleCount) || (f === 'mine' && it.s.myScore != null));
   }
 
   async function showMap() {
@@ -729,7 +737,7 @@
     const focus = state.focusId && Store.place(state.focusId);
     state.focusId = null;
     const items = mapItems();
-    mapCtl.setMarkers(items, { fit: !focus });
+    mapCtl.setMarkers(items, { fit: !focus, fitAll: state.mapFilter === 'hub' });
     if (focus) mapCtl.focus(focus);
     else if (!items.length) toast('Nothing here yet for this filter');
   }

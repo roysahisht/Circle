@@ -92,7 +92,7 @@ window.Maps = (function () {
 
     return {
       provider: 'leaflet',
-      setMarkers(items, { fit } = {}) {
+      setMarkers(items, { fit, fitAll } = {}) {
         layer.clearLayers();
         dots.clearLayers();
         const pins = [];
@@ -110,7 +110,7 @@ window.Maps = (function () {
             .on('click', () => onSelect(place.id))
             .addTo(layer);
         });
-        const fitTo = pins.length ? pins : items.map(i => i.place);
+        const fitTo = (pins.length && !fitAll) ? pins : items.map(i => i.place);
         if (fit && fitTo.length) map.fitBounds(fitTo.map(p => [p.lat, p.lng]), { padding: [50, 50], maxZoom: 15 });
       },
       focus(p) { map.setView([p.lat, p.lng], 16); },

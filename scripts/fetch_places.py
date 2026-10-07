@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 import duckdb
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from areas import assign_areas, text_area  # noqa: E402
+from areas import assign_areas, text_area, HUB_CENTRE, HUB_RADIUS_KM  # noqa: E402
 
 # Greater Bangalore, incl. Whitefield, Electronic City, Yelahanka, Kengeri.
 SOUTH, WEST, NORTH, EAST = 12.78, 77.40, 13.20, 77.82
@@ -137,7 +137,10 @@ def main():
         WHERE bbox.xmin BETWEEN {WEST} AND {EAST} AND bbox.ymin BETWEEN {SOUTH} AND {NORTH}
           AND taxonomy.hierarchy[1] = 'food_and_drink'
           AND names.primary IS NOT NULL
-          AND confidence >= {MIN_CONFIDENCE}
+          AND (confidence >= {MIN_CONFIDENCE}
+               -- the launch hub should look complete: keep small local places the data is unsure about
+               OR (confidence >= 0.05 AND sqrt(power((bbox.ymin - {HUB_CENTRE[0]}) * 111, 2)
+                                            + power((bbox.xmin - {HUB_CENTRE[1]}) * 109, 2)) <= {HUB_RADIUS_KM}))
           AND coalesce(operating_status, 'open') <> 'permanently_closed'
     """)
     print(f"     {con.execute('SELECT count(*) FROM places').fetchone()[0]} places")

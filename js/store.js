@@ -229,6 +229,10 @@ window.Store = (function () {
   function placesInArea(area) {
     return places().filter(p => p.area === area);
   }
+  function placesInAreas(areaList) {
+    const set = new Set(areaList);
+    return places().filter(p => set.has(p.area));
+  }
   function findPlace(d) {
     if (d.osmId && byId.has(d.osmId)) return byId.get(d.osmId);
     const n = norm(d.name);
@@ -406,7 +410,7 @@ window.Store = (function () {
   return {
     cloud, onError, signedIn, account, signUp, rename, inviteLink, acceptInvite,
     load, loadBase, info, reset, me, users, user, isFriend, friendUsers, toggleFriend, reviewCount,
-    places, place, placeCount, ratedAreas, allAreas, canonicalArea, searchPlaces, searchAreas, placesInArea,
+    places, place, placeCount, ratedAreas, allAreas, canonicalArea, searchPlaces, searchAreas, placesInArea, placesInAreas,
     findPlace, addPlace, setGoogleMatch,
     reviews, reviewsFor, addReview, placeStats, isWanted, toggleWant, wantList, trending, topLists,
   };

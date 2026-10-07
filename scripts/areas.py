@@ -35,7 +35,8 @@ AREAS = {
     "Bellandur": ["bellandur", "bellanduru", "green glen layout", "devarabeesanahalli", "kadubeesanahalli", "ecospace", "eco space", "panathur"],
     "Marathahalli": ["marathahalli", "marathalli", "munnekollal", "munnekolal", "spice garden"],
     # The Brookefield hub: three neighbouring areas people treat as separate places to eat.
-    "Brookefield": ["brookefield", "brookfield", "itpl main road"],
+    # not "itpl main road": it runs for miles from Marathahalli deep into Whitefield
+    "Brookefield": ["brookefield", "brookfield", "brookefields"],
     "AECS Layout": ["aecs layout", "aecs", "a e c s layout", "a e c s"],
     "Kundalahalli": ["kundalahalli", "kundalhalli", "kundanahalli", "kundalahalli gate", "kundanahalli gate"],
     "Whitefield": ["whitefield", "itpl", "hope farm", "kadugodi", "varthur road", "siddapura"],
@@ -84,17 +85,27 @@ AREAS = {
     "Vidyaranyapura": ["vidyaranyapura"],
 }
 
+# ---------- the launch hub: AECS Layout / Kundalahalli / Brookefield ----------
+# Addresses here often end in "Whitefield" or "Marathahalli" (the post-office names) even though
+# people call the area Brookefield. So inside the hub we trust those big names less.
+HUB_CENTRE = (12.9672, 77.7162)
+HUB_RADIUS_KM = 1.5       # inside this, a big-area name in an address is only a weak hint
+HUB_CORE_KM = 1.1         # inside this, places with no clear area can only join a hub area
+HUB_AREAS = ["AECS Layout", "Kundalahalli", "Brookefield"]
+BROAD_AREAS = {"Whitefield", "Marathahalli", "Varthur", "Mahadevapura", "KR Puram", "EPIP Zone"}
+
 # Names that also exist elsewhere in Bangalore (there is another "AECS Layout" near Singasandra,
 # for example). A mention only counts if the place is within this many km of the real area;
-# otherwise the address is ignored and its neighbours decide.  area -> ((lat, lng), km)
+# otherwise that mention is ignored.  area -> ((lat, lng), km)
 AREA_LIMITS_KM = {
     "AECS Layout": ((12.9665, 77.7140), 3.0),
     "Kundalahalli": ((12.9650, 77.7170), 3.0),
+    "Brookefield": ((12.9672, 77.7180), 2.2),
 }
 
-# "AECS Layout, Kundalahalli, Bengaluru" mentions both. Addresses run small -> big, so the
-# last one would win; for these pairs we want the more specific (smaller) area instead.
-PREFER_OVER = {"AECS Layout": {"Kundalahalli", "Brookefield"}}
+# "AECS Layout, Kundalahalli, Whitefield" mentions several. Addresses run small -> big, so the
+# last one would normally win; for the hub we want the most specific one, in this order.
+SPECIFIC_FIRST = ["AECS Layout", "Kundalahalli", "Brookefield"]
 
 _norm_re = re.compile(r"[^a-z0-9]+")
 
@@ -111,8 +122,8 @@ for area, aliases in AREAS.items():
 _pattern = re.compile(" (" + "|".join(re.escape(a) for a in sorted(_alias_to_area, key=len, reverse=True)) + ") ")
 
 
-def text_area(*texts):
-    """Rightmost known area mentioned across the given texts (address first, then name)."""
+def text_hits(*texts):
+    """Every known area mentioned, in order, in the first text that mentions any (address first, then name)."""
     for text in texts:
         t = _norm(text)
         hits, pos = [], 0
@@ -123,11 +134,20 @@ def text_area(*texts):
             hits.append(_alias_to_area[m.group(1)])
             pos = m.end() - 1  # allow overlapping word boundary
         if hits:
-            for specific, broader in PREFER_OVER.items():
-                if specific in hits and any(h in broader for h in hits):
-                    return specific
-            return hits[-1]
-    return None
+            return hits
+    return []
+
+
+def pick_area(hits):
+    """The hub's specific areas win; otherwise the rightmost mention (addresses run small -> big)."""
+    for s in SPECIFIC_FIRST:
+        if s in hits:
+            return s
+    return hits[-1] if hits else None
+
+
+def text_area(*texts):
+    return pick_area(text_hits(*texts))
 
 
 def metres(lat1, lng1, lat2, lng2):
@@ -163,11 +183,18 @@ def assign_areas(places, fallback=None, k=9, max_km=1.5):
     Returns a small report dict with accuracy numbers.
     """
     # 1. text labels
+    def too_far(area, p):
+        limit = AREA_LIMITS_KM.get(area)
+        return bool(limit) and metres(p["lat"], p["lng"], *limit[0]) > limit[1] * 1000
+
     for p in places:
-        p["_text"] = text_area(p.get("address"), p.get("name"))
-        limit = AREA_LIMITS_KM.get(p["_text"])
-        if limit and metres(p["lat"], p["lng"], *limit[0]) > limit[1] * 1000:
-            p["_text"] = None   # same name, different part of the city
+        # a mention of "AECS Layout" in the wrong part of the city is ignored, not fatal:
+        # the next mention (or the neighbours) decides
+        hits = [h for h in text_hits(p.get("address"), p.get("name")) if not too_far(h, p)]
+        p["_text"] = pick_area(hits)
+        # inside the hub, a big area name ("Whitefield") is only a weak hint
+        p["_weak"] = (p["_text"] in BROAD_AREAS
+                      and metres(p["lat"], p["lng"], *HUB_CENTRE) <= HUB_RADIUS_KM * 1000)
 
     # where each area really is: median of its text-labelled places
     pts = defaultdict(list)
@@ -191,16 +218,18 @@ def assign_areas(places, fallback=None, k=9, max_km=1.5):
         d = metres(p["lat"], p["lng"], *centre[a])
         if d > 8000:
             p["_text"] = None
-        elif d <= max(3000, 3 * spread[a]):
+        elif d <= max(3000, 3 * spread[a]) and not p["_weak"]:
             labelled.append(p)
     grid = _Grid()
     for p in labelled:
         grid.add(p["lat"], p["lng"], p)
 
-    def vote(p, exclude_self=False):
+    def vote(p, exclude_self=False, only=None, min_share=0.4):
         cands = []
         for lat, lng, q in grid.near(p["lat"], p["lng"], rings=2):
             if exclude_self and q is p:
+                continue
+            if only and q["_text"] not in only:
                 continue
             d = metres(p["lat"], p["lng"], lat, lng)
             if d <= max_km * 1000:
@@ -212,7 +241,7 @@ def assign_areas(places, fallback=None, k=9, max_km=1.5):
         for d, a in cands[:k]:
             weights[a] += 1 / (60 + d)  # nearer neighbours count more
         area, w = weights.most_common(1)[0]
-        return area if w / sum(weights.values()) >= 0.4 else None
+        return area if w / sum(weights.values()) >= min_share else None
 
     # accuracy check: hide each labelled place's own label and see if neighbours guess it
     sample = labelled[::3]
@@ -222,18 +251,22 @@ def assign_areas(places, fallback=None, k=9, max_km=1.5):
 
     counts = Counter()
     for p in places:
-        if p["_text"]:
+        undecided = p["_weak"] or not p["_text"]    # a weak hint, or no hint at all
+        in_core = metres(p["lat"], p["lng"], *HUB_CENTRE) <= HUB_CORE_KM * 1000
+        guess = None
+        if undecided:
+            # right in the middle of the hub, only a hub area is a sensible answer
+            guess = (vote(p, only=HUB_AREAS, min_share=0) if in_core else None) or vote(p)
+        if guess:
+            p["area"], how = guess, "neighbours"
+        elif p["_text"]:
             p["area"], how = p["_text"], "address"
         else:
-            guess = vote(p)
-            if guess:
-                p["area"], how = guess, "neighbours"
-            else:
-                p["area"], how = (fallback(p) if fallback else None) or "Bangalore", "fallback"
+            p["area"], how = (fallback(p) if fallback else None) or "Bangalore", "fallback"
         p["area_how"] = how
         counts[how] += 1
     for p in places:  # only after the loop: neighbours read each other's _text while voting
-        del p["_text"]
+        del p["_text"], p["_weak"]
 
     return {
         "by_method": dict(counts),
