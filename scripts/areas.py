@@ -33,8 +33,11 @@ AREAS = {
     "Electronic City": ["electronic city", "electronics city", "e city", "konappana agrahara", "neeladri", "hosa road"],
     "Sarjapur Road": ["sarjapur", "sarjapura", "kaikondrahalli", "dommasandra", "haralur", "kasavanahalli", "carmelaram", "doddakannelli"],
     "Bellandur": ["bellandur", "bellanduru", "green glen layout", "devarabeesanahalli", "kadubeesanahalli", "ecospace", "eco space", "panathur"],
-    "Marathahalli": ["marathahalli", "marathalli", "munnekollal", "munnekolal", "aecs layout", "spice garden"],
-    "Brookefield": ["brookefield", "brookfield", "kundalahalli", "itpl main road"],
+    "Marathahalli": ["marathahalli", "marathalli", "munnekollal", "munnekolal", "spice garden"],
+    # The Brookefield hub: three neighbouring areas people treat as separate places to eat.
+    "Brookefield": ["brookefield", "brookfield", "itpl main road"],
+    "AECS Layout": ["aecs layout", "aecs", "a e c s layout", "a e c s"],
+    "Kundalahalli": ["kundalahalli", "kundalhalli", "kundanahalli", "kundalahalli gate", "kundanahalli gate"],
     "Whitefield": ["whitefield", "itpl", "hope farm", "kadugodi", "varthur road", "siddapura"],
     "Varthur": ["varthur", "gunjur", "balagere"],
     "Mahadevapura": ["mahadevapura", "hoodi", "garudacharpalya", "doddanekundi"],
@@ -81,6 +84,18 @@ AREAS = {
     "Vidyaranyapura": ["vidyaranyapura"],
 }
 
+# Names that also exist elsewhere in Bangalore (there is another "AECS Layout" near Singasandra,
+# for example). A mention only counts if the place is within this many km of the real area;
+# otherwise the address is ignored and its neighbours decide.  area -> ((lat, lng), km)
+AREA_LIMITS_KM = {
+    "AECS Layout": ((12.9665, 77.7140), 3.0),
+    "Kundalahalli": ((12.9650, 77.7170), 3.0),
+}
+
+# "AECS Layout, Kundalahalli, Bengaluru" mentions both. Addresses run small -> big, so the
+# last one would win; for these pairs we want the more specific (smaller) area instead.
+PREFER_OVER = {"AECS Layout": {"Kundalahalli", "Brookefield"}}
+
 _norm_re = re.compile(r"[^a-z0-9]+")
 
 
@@ -108,6 +123,9 @@ def text_area(*texts):
             hits.append(_alias_to_area[m.group(1)])
             pos = m.end() - 1  # allow overlapping word boundary
         if hits:
+            for specific, broader in PREFER_OVER.items():
+                if specific in hits and any(h in broader for h in hits):
+                    return specific
             return hits[-1]
     return None
 
@@ -147,6 +165,9 @@ def assign_areas(places, fallback=None, k=9, max_km=1.5):
     # 1. text labels
     for p in places:
         p["_text"] = text_area(p.get("address"), p.get("name"))
+        limit = AREA_LIMITS_KM.get(p["_text"])
+        if limit and metres(p["lat"], p["lng"], *limit[0]) > limit[1] * 1000:
+            p["_text"] = None   # same name, different part of the city
 
     # where each area really is: median of its text-labelled places
     pts = defaultdict(list)

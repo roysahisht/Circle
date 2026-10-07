@@ -59,6 +59,20 @@ python scripts/fetch_places.py
 
 It does nothing if you already have the latest release. Add `--force` to rebuild anyway, for example after editing `scripts/areas.py`. Ratings and saved places are never lost: when you rate or save a place, the app keeps its own copy of it.
 
+### Adding or correcting data safely
+
+`data/bangalore-places.json` is **generated — never edit it by hand**. The daily job (or `python scripts/fetch_places.py`) rewrites it, and hand edits would be lost without warning. Where your own changes belong:
+
+| You want to… | Do this | Shows in the app |
+|---|---|---|
+| Fix one place's area / name / cuisine | Supabase → Table Editor → `places` → edit the cell (only places someone has rated, saved or added are in this table) | For everyone, on next load |
+| Add one restaurant | In the app: ＋ Rate a place → "Can't find it? Add it yourself" (typed areas snap to existing area names) | Immediately |
+| Teach the script a new area or spelling | Edit `scripts/areas.py`, then run `python scripts/fetch_places.py --force` | After you push the new JSON |
+
+**Every rebuild prints a "WHAT CHANGED" report** — places added/removed, how many moved area (and from where to where), and area sizes before → after. Read it before pushing. Nothing is live until you push to GitHub, git keeps every earlier version (`git revert` undoes a bad one), and Netlify keeps old deploys (Deploys → "Publish deploy" on an older one rolls back in one click).
+
+Places people already rated are stored in the database with their own copy of the area, so rebuilding the list never changes or loses their ratings; it only affects places nobody has touched yet.
+
 ### How areas are worked out (`scripts/areas.py`)
 
 1. **From the address or name.** About 6,800 places name their area ("…Gandhi Bazaar Main Rd, Basavanagudi", "Koramangala Social"). `areas.py` holds a list of about 60 Bangalore areas and the spellings people use for them (Kormangala, J P Nagar, HAL 2nd Stage…). Add any spellings that are missing there.

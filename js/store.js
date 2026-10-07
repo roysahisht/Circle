@@ -195,6 +195,21 @@ window.Store = (function () {
   const ratedAreas = () => countAreas([...new Set(db.reviews.map(r => r.placeId))].map(place).filter(Boolean));
   const allAreas = () => countAreas(places());
 
+  // People type areas freely ("AECS Layout, Kundalahalli", "koramangala"). Snap to an area name
+  // we already have, so lists and area pages don't split into near-duplicates: a case-insensitive
+  // match first, then the first comma-separated part that matches. Otherwise it's a genuinely new name.
+  function canonicalArea(typed) {
+    const raw = String(typed || '').trim();
+    if (!raw) return 'Bangalore';
+    const known = new Map(allAreas().map(a => [norm(a), a]));
+    if (known.has(norm(raw))) return known.get(norm(raw));
+    for (const part of raw.split(/[,/|]| - /)) {
+      const hit = known.get(norm(part));
+      if (hit) return hit;
+    }
+    return raw;
+  }
+
   function searchPlaces(q, limit = 8) {
     const n = norm(q);
     if (!n) return [];
@@ -230,7 +245,7 @@ window.Store = (function () {
     if (cloud) id = `u-${baseId.slice(0, 40)}-${Math.random().toString(36).slice(2, 8)}`;
     while (byId.has(id)) id = `${baseId}-${i++}`;
     const p = {
-      id, name: d.name, area: d.area || 'Bangalore', cuisine: d.cuisine || 'Restaurant',
+      id, name: d.name, area: canonicalArea(d.area), cuisine: d.cuisine || 'Restaurant',
       price: d.price || null, veg: !!d.veg, lat: d.lat, lng: d.lng, address: d.address || '',
       dishes: [], googleId: d.googleId || null, osmId: d.osmId || null, addedBy: d.addedBy || null,
     };
@@ -391,7 +406,7 @@ window.Store = (function () {
   return {
     cloud, onError, signedIn, account, signUp, rename, inviteLink, acceptInvite,
     load, loadBase, info, reset, me, users, user, isFriend, friendUsers, toggleFriend, reviewCount,
-    places, place, placeCount, ratedAreas, allAreas, searchPlaces, searchAreas, placesInArea,
+    places, place, placeCount, ratedAreas, allAreas, canonicalArea, searchPlaces, searchAreas, placesInArea,
     findPlace, addPlace, setGoogleMatch,
     reviews, reviewsFor, addReview, placeStats, isWanted, toggleWant, wantList, trending, topLists,
   };

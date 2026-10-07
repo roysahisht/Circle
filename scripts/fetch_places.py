@@ -72,6 +72,45 @@ def metres(lat1, lng1, lat2, lng2):
     return 6371000 * math.hypot(x, y)
 
 
+def print_change_report(new_places):
+    """Compare with the list currently on disk and say exactly what is about to change."""
+    if not os.path.exists(OUT):
+        return
+    with open(OUT, encoding="utf-8") as f:
+        old = json.load(f)
+    fi = {n: i for i, n in enumerate(old["fields"])}
+    before = {r[fi["id"]]: (r[fi["name"]], old["areas"][r[fi["area"]]]) for r in old["places"]}
+    after = {p["id"]: (p["name"], p["area"]) for p in new_places}
+
+    added = [i for i in after if i not in before]
+    removed = [i for i in before if i not in after]
+    moved = [i for i in after if i in before and before[i][1] != after[i][1]]
+    renamed = [i for i in after if i in before and before[i][0] != after[i][0]]
+
+    print("\n=== WHAT CHANGED vs the list currently in the app ===")
+    print(f"  places before: {len(before)}   after: {len(after)}   "
+          f"(+{len(added)} new, -{len(removed)} gone, {len(moved)} moved area, {len(renamed)} renamed)")
+    if moved:
+        flows = {}
+        for i in moved:
+            flows[(before[i][1], after[i][1])] = flows.get((before[i][1], after[i][1]), 0) + 1
+        print("  Areas that moved:")
+        for (a, b), n in sorted(flows.items(), key=lambda x: -x[1])[:15]:
+            print(f"    {n:4d}  {a}  ->  {b}")
+    area_before, area_after = {}, {}
+    for _, a in before.values():
+        area_before[a] = area_before.get(a, 0) + 1
+    for _, a in after.values():
+        area_after[a] = area_after.get(a, 0) + 1
+    changed = sorted((a for a in set(area_before) | set(area_after) if area_before.get(a, 0) != area_after.get(a, 0)),
+                     key=lambda a: -abs(area_after.get(a, 0) - area_before.get(a, 0)))
+    if changed:
+        print("  Area sizes (before -> after):")
+        for a in changed[:15]:
+            print(f"    {a:24s} {area_before.get(a, 0):4d} -> {area_after.get(a, 0):4d}")
+    print("=====================================================\n")
+
+
 def main():
     t0 = time.time()
     release = latest_release()
@@ -189,6 +228,7 @@ def main():
           f"neighbour method {report['neighbour_accuracy']:.0%} vs old boundary method {report['old_method_accuracy']:.0%}")
 
     kept.sort(key=lambda p: (p["area"], p["name"].lower()))
+    print_change_report(kept)
     areas = sorted({p["area"] for p in kept})
     area_index = {a: i for i, a in enumerate(areas)}
     fields = ["id", "name", "lat", "lng", "area", "cuisine", "veg", "address", "hours", "phone", "website"]
