@@ -115,6 +115,8 @@ window.Store = (function () {
       }
       base.push(p);
     });
+    // A place saved earlier can have an area typed freely ("AECS Layout, Kundalahalli"): show it under the real name.
+    db.places.forEach(p => { p.area = canonicalArea(p.area); });
     baseInfo = { count: base.length + mine.length, fetchedAt: json.fetchedAt, attribution: json.attribution };
     save();
     reindex();
@@ -201,7 +203,8 @@ window.Store = (function () {
   function canonicalArea(typed) {
     const raw = String(typed || '').trim();
     if (!raw) return 'Bangalore';
-    const known = new Map(allAreas().map(a => [norm(a), a]));
+    // the official list from the place file when we have it (a stray typed area must not count as "known")
+    const known = new Map((lastBaseJson ? lastBaseJson.areas : allAreas()).map(a => [norm(a), a]));
     if (known.has(norm(raw))) return known.get(norm(raw));
     for (const part of raw.split(/[,/|]| - /)) {
       const hit = known.get(norm(part));
