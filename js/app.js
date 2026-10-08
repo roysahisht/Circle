@@ -24,7 +24,7 @@
   const emojiFor = c => (CUISINE_EMOJI.find(([k]) => String(c || '').toLowerCase().includes(k)) || [0, '🍽️'])[1];
 
   const HUB = (window.CIRCLE_CONFIG && CIRCLE_CONFIG.HUB) || null;
-  const state = { trendingArea: 'All', mapFilter: HUB ? 'hub' : 'all', focusId: null, areaLimit: 60 };
+  const state = { trendingArea: 'All', mapFilter: HUB ? 'hub' : 'all', focusId: null, areaLimit: 60, circleView: null };
   let mapCtl = null;
   let mapBuilding = null;
   let sheetCleanup = null;
@@ -109,24 +109,37 @@
   function renderCircle() {
     const meId = Store.me().id;
     const friends = Store.friendUsers();
-    const feed = Store.reviews()
-      .filter(r => r.userId === meId || Store.isFriend(r.userId))
-      .sort((a, b) => b.createdAt - a.createdAt);
+    const newest = (a, b) => b.createdAt - a.createdAt;
+    const feed = Store.reviews().filter(r => r.userId === meId || Store.isFriend(r.userId)).sort(newest);
+    const everyone = Store.reviews().slice().sort(newest).slice(0, 40);
+    // A new person has no circle yet, and an empty screen looks like the app is broken even though
+    // other people are rating. So with nobody in the circle posting, start on "Everyone".
+    const view = state.circleView || (feed.length ? 'circle' : 'everyone');
+    const nobodyYet = !feed.length;
     return `
       <section class="hero">
-        <h1>What your circle is eating</h1>
-        <p>Only your real friends. No bots, no paid reels.</p>
+        <h1>${view === 'everyone' ? 'What Circle is eating' : 'What your circle is eating'}</h1>
+        <p>${view === 'everyone' ? 'Ratings from everyone on Circle, newest first.' : 'Only your real friends. No bots, no paid reels.'}</p>
       </section>
       <div class="friends-row">
         ${Store.cloud ? '<button class="friend" data-action="invite"><span class="avatar avatar--invite">💌</span><span>Invite</span></button>' : ''}
         ${friends.map(u => `<div class="friend">${avatar(u)}<span>${esc(u.name)}</span></div>`).join('')}
         <button class="friend" data-action="manage-circle"><span class="avatar avatar--add">＋</span><span>Manage</span></button>
       </div>
-      ${feed.length ? feed.map(reviewCard).join('') : `
+      <div class="chips">
+        <button class="chip ${view === 'circle' ? 'on' : ''}" data-action="circle-view" data-view="circle">👯 My circle (${feed.length})</button>
+        <button class="chip ${view === 'everyone' ? 'on' : ''}" data-action="circle-view" data-view="everyone">🌍 Everyone (${Store.reviews().length})</button>
+      </div>
+      ${view === 'everyone' ? `
+        ${nobodyYet ? `<div class="empty empty--tight"><b>Nobody in your circle has posted yet</b>
+          <p>Here's what everyone on Circle is rating. Invite your friends and their ratings will show in <b>My circle</b>.</p>
+          ${Store.cloud ? '<button class="btn btn--primary" data-action="invite">💌 Invite friends on WhatsApp</button>' : ''}</div>` : ''}
+        ${everyone.length ? everyone.map(reviewCard).join('') : empty('🍽️', 'No ratings yet', 'Be the first — tap “＋ Rate a place”.')}`
+      : (feed.length ? feed.map(reviewCard).join('') : `
         <div class="empty"><span>👯</span><b>Your circle is quiet</b>
           <p>Circle is only as good as your friends. Send your foodie group the invite link — when they open it, you're in each other's circle.</p>
           ${Store.cloud ? '<button class="btn btn--primary" data-action="invite">💌 Invite friends on WhatsApp</button>' : ''}
-        </div>`}`;
+        </div>`)}`;
   }
 
   function renderTrending() {
@@ -986,6 +999,7 @@
         if (currentRoute()[0] === 'map') showMap(); else location.hash = '#/map';
         break;
       case 'set-area': state.trendingArea = el.dataset.area; refresh(); break;
+      case 'circle-view': state.circleView = el.dataset.view; refresh(); break;
       case 'more-area': state.areaLimit += 60; refresh(); break;
       case 'map-filter': state.mapFilter = el.dataset.filter; showMap(); break;
       case 'locate': locate(); break;
